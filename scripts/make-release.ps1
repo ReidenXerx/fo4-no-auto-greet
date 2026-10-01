@@ -41,8 +41,14 @@ $docs = Join-Path $stage 'Docs\NoAutoGreet'
 New-Item -ItemType Directory -Force $docs | Out-Null
 foreach ($doc in 'LICENSE', 'README.md', 'CHANGELOG.md') { Copy-Item (Join-Path $root $doc) $docs -Force }
 
+# The installer (nexus-tools/docs/FOMOD-STANDARD.md, mandatory from this release on): written from what the stage holds.
+python (Join-Path $root 'tools\fomod_pack.py') $stage $version
+if ($LASTEXITCODE) { throw 'tools\fomod_pack.py refused - nothing was packed.' }
+
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
+python (Join-Path $root '..\nexus-tools\scripts\fomod-check.py') $zip
+if ($LASTEXITCODE) { Remove-Item $zip -Force; throw 'fomod-check failed - the zip is removed.' }
 $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
 $dllSha = (Get-FileHash $dll -Algorithm SHA256).Hash.ToLower()
 Write-Host "NoAutoGreet $version"
